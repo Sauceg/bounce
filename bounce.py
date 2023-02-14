@@ -50,7 +50,8 @@ class Game():
       self.stage1 = True                  # might add different stages later 
       self.lives = 4 
       self.count = 0
-    
+      self.current_time =   0
+      self.ring_drawn_time = 0 
    
       # initialized the walls 
       self.wall = Wall(73,235,50,45,"white",self.surface)
@@ -75,6 +76,7 @@ class Game():
          self.handle_events() # Handle different user inputs 
          self.draw()          # draw the objects on the window
          if self.continue_game:
+            self.current_time = pygame.time.get_ticks()
             self.update()     # just moves the ball for now 
             self.decide_continue()
        
@@ -127,12 +129,11 @@ class Game():
       self.ringrect = self.ring.get_rect()
       self.ringrect.move_ip(395,255)
       self.surface.blit(self.ring,self.ringrect)
-      
       if not self.ring_drawn: 
          self.ring_drawn_time =  pygame.time.get_ticks()
          self.ring_drawn = True 
 
-    
+     
       if self.current_time - self.ring_drawn_time > 100:
          self.ring_drawn = False 
          self.count  += 1 
