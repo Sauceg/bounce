@@ -127,11 +127,12 @@ class Game():
       self.ringrect = self.ring.get_rect()
       self.ringrect.move_ip(395,255)
       self.surface.blit(self.ring,self.ringrect)
+      
       if not self.ring_drawn: 
          self.ring_drawn_time =  pygame.time.get_ticks()
          self.ring_drawn = True 
 
-      print(self.current_time, self.ring_drawn_time)
+    
       if self.current_time - self.ring_drawn_time > 100:
          self.ring_drawn = False 
          self.count  += 1 
