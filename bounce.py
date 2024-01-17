@@ -25,34 +25,37 @@ def main():
    pygame.quit() 
 
 
-
 class Game():
    def __init__(self,w_surface):
       # pace that the game runs at 
-      self.FPS = 50                       # FPS (frames per second) its the speed the game runs at 
+      self.FPS = 50                                 # FPS (frames per second) its the speed the game runs at 
       
-      self.game_Clock = pygame.time.Clock() # A clock that starts when the window opens  
+      self.game_Clock = pygame.time.Clock()         # A clock that starts when the window opens  
        
-      self.surface = w_surface               # surface the game is played on 
+      self.surface = w_surface                      # surface the game is played on 
       
-      self.ball_image = "clipart237889.png"  # i ended up just drawing a red circleand made it the ball 
-      self.spike_image = "kindpng_5633026.png" # spike the image 
+      self.ball_image = "clipart237889.png"         # load ball image 
+      self.spike_image = "kindpng_5633026.png"      # load spike image 
       
       self.close_game = False    
       self.continue_game = True
       
       self.size = self.surface.get_size()
-      self.bg_color = pygame.Color((135,206,235)) # colour of the background 
+      self.bg_color = pygame.Color((135,206,235))    # colour of the background 
       self.ball_diameter = 12 
-      self.ball_vertical_increment = 4  # spead ball moves at vetically (number of pixels the ball moves up) 
-      self.ball_horizontal_increment =  3 # "     "     "   "   horizontally... side to side 
+      self.ball_vertical_increment = 4               # spead ball moves at vetically (number of pixels the ball moves up) 
+      self.ball_horizontal_increment =  3            # "     "     "   "   horizontally... side to side 
       
-      self.stage1 = True                  # might add different stages later 
-      self.lives = 4 
-      self.count = 0
+
+      self.lives = 4  # set number of lives 
+      self.count = 0  # set count to 0 
       self.current_time =   0
       self.ring_drawn_time = 0 
-   
+      self.score = 0 
+      self.timer = 0
+      self.timer_left = 0
+      self.timer_right= 0
+
       # initialized the walls 
       self.wall = Wall(73,235,50,45,"white",self.surface)
       self.wall2 = Wall(190,245,10,45,"white",self.surface)
@@ -63,7 +66,10 @@ class Game():
       # initilaized  the ball
       self.ball = Ball(self.surface,self.ball_diameter,self.walls, self.ball_image)
       self.ring_drawn = False 
-     
+      self.last_game_ended = 0
+
+      self.stages = [self.load_stage1()]
+      self.stage = 0                              # might add different stages later 
      
      
    # play method checks if the player closes/quits the game and updates the window 
@@ -72,9 +78,8 @@ class Game():
       
       while not self.close_game:
         
-         
-         self.handle_events() # Handle different user inputs 
          self.draw()          # draw the objects on the window
+         self.handle_events() # Handle different user inputs 
          if self.continue_game:
             self.current_time = pygame.time.get_ticks()
             self.update()     # just moves the ball for now 
@@ -120,7 +125,8 @@ class Game():
       #self.surface.blit(self.spike,(262,268))
       #self.surface.blit(self.spike,(324,268))
          
-   # initializes ring 
+   # initializes ring
+
    def load_ring(self):
      
       self.rings =  ['ring1.gif','ring2.gif','ring3.gif','ring4.gif']
@@ -140,19 +146,20 @@ class Game():
       if self.count == 4:
          self.count = 0
          
-      
+   def load_stage(self):
+      pass 
    
    # draws all the obejects in the window 
    def load_stage1(self):
-      
       self.surface.fill(self.bg_color)
-      
       self.wall4.draw()
       self.wall3.draw()
       self.wall2.draw()
       self.wall.draw()
       self.load_spike()
-      self.load_ring()    
+      self.load_ring()  
+      
+
       
 
    def handle_events(self):
@@ -165,6 +172,10 @@ class Game():
             self.handle_keydown(event)
          elif event.type == pygame.KEYUP:   # check if the user releases a key and the game uses handle_key_up function to react accodingly
             self.handle_keyup(event)
+         elif not self.continue_game and self.is_gameover():
+            if event.type == pygame.MOUSEBUTTONUP:
+               self.handle_mouse_up(event.pos)
+
   
    # Acts based on what evenst being recieved 
    def handle_keydown(self,event):
@@ -180,6 +191,7 @@ class Game():
       # if the user clicks left, ball moves left, by reducing the center on x axis by horizontal increment 
       if event.key == pygame.K_LEFT:
          self.ball.set_horizontal_velocity(-self.ball_horizontal_increment)
+
    
    # handle what happens when the user releases the right and left button- ball stops moving 
    def handle_keyup(self,event):
@@ -190,42 +202,82 @@ class Game():
            
    
    def draw(self):
-      self.load_stage1()      # draw stage 
+      self.load_stage1()
       self.ball.draw()        # draw ball 
       self.draw_lives()
+      self.draw_timer()
       if not self.continue_game:
          if self.is_gameover():
             self.game_over_screen()
          else:
+            self.draw_score() 
             self.win_screen()
-      
       pygame.display.update() # updates window 
-     
+   def handle_mouse_up(self, pos):
+      if self.test_image_rect.collidepoint(pos):
+         self.reset()
       
+         
    def update(self):
-      self.ball.move()        # move ball 
+      if self.continue_game == True :
+         self.timer = (pygame.time.get_ticks() - self.last_game_ended)//1000
+         self.timer_right= self.timer % 60 
+         self.timer_left = self.timer // 60 
+      self.ball.move()  
       
+            # move ball 
+   def draw_score(self):
+      font_path = 'atari.ttf' # or wherever your font file is
+      font= pygame.font.Font(font_path, 24)
+      self.score_str = "Score:" + str(100000-(self.timer + (4-self.lives) * 5)* 2)
+      test_image = font.render(self.score_str,True, pygame.Color('white'), self.bg_color) # text and the text color 
+      location = (self.surface.get_width()//2 - 60, 70)                         # where txt is to be drawn 
+      self.surface.blit(test_image,location)                              # blits the text to surface and intended location 
+
+      
+   def draw_timer(self):
+       # this is where the timer is drawn 
+      font_path = 'atari.ttf' # or wherever your font file is
+      font= pygame.font.Font(font_path, 30) 
+      if self.timer_left < 10: 
+         left_str = '0' + str(self.timer_left)
+      else:
+         left_str = str(self.timer_left)
+      if self.timer_right< 10:
+         right_str = '0' + str(self.timer_right)
+      else:
+         right_str = str(self.timer_right)
+      self.timer_str = left_str+ ":" + right_str
+      test_image = font.render(self.timer_str,True, pygame.Color('white'), self.bg_color) # text and the text color 
+      location = (self.surface.get_width()//2 - 35, 10)                         # where txt is to be drawn 
+      self.surface.blit(test_image,location)                              # blits the text to surface and intended location 
+
    def draw_lives(self):
-      font = pygame.font.SysFont('',25)  # text size 
-      test_image = font.render('Lives:',True, pygame.Color('white'), self.bg_color) # text and the text color 
-      location = (300,10)    # where txt is to be drawn 
-      self.surface.blit(test_image,location)   # blits the text to surface and intended location 
-      pos = [360, 19] 
+      #font = pygame.font.SysFont('',25)  # text size 
+      #test_image = font.render('Lives',True, pygame.Color('white'), self.bg_color) # text and the text color 
+      #location = (300,10)    # where txt is to be drawn 
+      #self.surface.blit(test_image,location)   # blits the text to surface and intended location 
+      pos = [340, 15] 
       for i in range(self.lives):
          if i == 0: 
             pygame.draw.circle(self.surface,(235,0,0),(pos[0] , pos[1]) , self.ball_diameter//2 ) 
          else:
             pygame.draw.circle(self.surface,(235,0,0),(pos[0] + (self.ball_diameter *i ) + 3 *i, pos[1]),self.ball_diameter//2) 
-          
+   
+ 
          
    def game_over_screen(self):
-      font = pygame.font.SysFont('',50)  # text size 
-      test_image = font.render('Gameover!',True, pygame.Color('white'), self.bg_color) # text and the text color 
+      font_path = 'atari.ttf' # or wherever your font file is
+      font= pygame.font.Font(font_path, 40)
+      self.test_image = font.render('Gameover!',True, pygame.Color('white'), self.bg_color) # text and the text color
+      self.test_image_rect = self.test_image.get_rect()
       location = (self.size[0]//2 - 100,self.size[1]//2 - 20)    # where tx   
-      self.surface.blit(test_image,location)
-      
+      self.test_image_rect.move_ip(location)
+      self.surface.blit(self.test_image, self.test_image_rect)
+
    def win_screen(self):
-      font = pygame.font.SysFont('',50)  # text size 
+      font_path = 'atari.ttf' # or wherever your font file is
+      font= pygame.font.Font(font_path, 40)
       test_image = font.render('Easy Dubs!!!',True, pygame.Color('white'), self.bg_color) # text and the text color 
       location = (self.size[0]//2 - 100,self.size[1]//2 - 20)    # where tx   
       self.surface.blit(test_image,location)      
@@ -249,6 +301,12 @@ class Game():
       # when does the game end ?
       self.is_win()
       self.is_gameover()
+   def reset(self):
+      #reset lives
+      self.lives = 4 
+      self.continue_game = True
+      self.last_game_ended= pygame.time.get_ticks()
+
             
             
             
@@ -267,7 +325,6 @@ class Ball():
       self.image = image 
       self.walls = walls
       self.ball_image =  pygame.image.load(self.image)
-      pygame.image.load(self.image)
       self.ball_image = pygame.transform.scale(self.ball_image,(self.ball_diameter,self.ball_diameter))
       self.rect =  self.ball_image.get_rect()   
       self.rect.move_ip(self.start_pos[0],self.start_pos[1])      
@@ -291,7 +348,6 @@ class Ball():
       
       self.rect = self.rect.move(self.horizontal_velocity,self.vertical_velocity)
       
-     
    
       if not (self.touched_wallside or self.touched_walltop):
          self.wall = self.collide_point() # function not done but it should chect when the ball hits a wall 
@@ -306,7 +362,6 @@ class Ball():
       if self.touched_walltop:
          self.rect.bottom =  self.wall.y
          self.touched_walltop = False 
-        
          
       ## checks if the ball is going past the window and updates its position to stay in 
       
@@ -354,12 +409,12 @@ class Wall():
 
 
 class Traps():
-   def __init__(self,surface,platform,keys,ball):
+   def __init__(self,surface,platform,keys,traps,ball):
       self.surface = surface
       self.surface = surface
       self.platform = platform 
       self.traps = traps 
-      self.key = key
+      self.key = keys
       self.ball = ball 
            
   
